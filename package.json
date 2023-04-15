@@ -1,6 +1,6 @@
 {
   "name": "traefik-http-provider-mapper",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A traefik http provider mapping server to edit an existing http provider",
   "main": "index.js",
   "license": "MIT",

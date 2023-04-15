@@ -25,7 +25,7 @@ version: '3'
 
 services:
   traefik-http-provider-mapper:
-    image: beaussan/traefik-http-provider-mapper
+    image: ghcr.io/og-jons/traefik-http-provider-mapper:latest
     restart: unless-stopped
     environment:
       # Required, the address of the coolify server
