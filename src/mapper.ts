@@ -1,4 +1,5 @@
-import { Router, Service, TraefikDefinition } from './types';
+import { Application, Router, Service, TraefikDefinition } from './types';
+import axios from 'axios';
 
 export interface MapperProps {
   newHttpEntrypointName?: string;
@@ -9,7 +10,11 @@ export interface MapperProps {
   removeWwwRouters?: boolean;
   removeCoolify?: boolean;
   removeWwwMiddlewares?: boolean;
-  ignoreMiddlewareSites?: string[]
+  ignoreMiddlewareSites?: string[];
+  mapToServerIP?: string;
+  serverIp?: string;
+  adminEmail?: string;
+  adminPassword?: string;
 }
 
 type MapperFunction = (input: TraefikDefinition) => TraefikDefinition;
@@ -38,15 +43,21 @@ const renameEntrypoint = (oldName: string, newName: string): MapperFunction =>
     ),
   }));
 
-const addCustomMiddleware = (middleware: string, ignoreList?: string[]): MapperFunction =>
+const addCustomMiddleware = (
+  middleware: string,
+  ignoreList?: string[],
+): MapperFunction =>
   routerMapper((router) => {
-    if (ignoreList && ignoreList.some(ignoreDomain => router.rule.includes(ignoreDomain))) {
+    if (
+      ignoreList &&
+      ignoreList.some((ignoreDomain) => router.rule.includes(ignoreDomain))
+    ) {
       return router;
     }
     return {
       ...router,
       middlewares: [...router.middlewares, middleware],
-    }
+    };
   });
 
 const renameHttpEntpoint = (newName: string): MapperFunction =>
@@ -134,19 +145,95 @@ const filterOutWwwMiddlewares = (): MapperFunction => (input) => {
   newDefinition = routerMapper((router, name) => {
     return {
       ...router,
-      middlewares: router.middlewares.filter(middleware => !['redirect-to-non-www', 'redirect-to-www'].includes(middleware))
+      middlewares: router.middlewares.filter(
+        (middleware) =>
+          !['redirect-to-non-www', 'redirect-to-www'].includes(middleware),
+      ),
     };
   })(newDefinition);
   return newDefinition;
-}
+};
 
+const getJWTToken = async (
+  endpoint: string,
+  email: string,
+  password: string,
+): Promise<string> => {
+  return await axios
+    .post(`${endpoint}/api/v1/login`, {
+      email,
+      password,
+    })
+    .then((response) => response.data.token)
+    .catch((error) => {
+      throw new Error(error);
+    });
+};
+
+const getAllApplications = async (
+  endpoint: string,
+  jwt: string,
+): Promise<Application[]> => {
+  return await axios
+    .get(`${endpoint}/api/v1/applications`, {
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+      },
+    })
+    .then((response) => response.data.applications)
+    .catch((error) => {
+      throw new Error(error);
+    });
+};
+
+const mapServicesToExternalDomain = async (
+  newDefinition: TraefikDefinition,
+  creds: Record<string, string>,
+): Promise<void> => {
+  // Authenticate
+  let jwt = await getJWTToken(creds.endpoint, creds.email, creds.password);
+
+  // Get All Applications
+  const applications = await getAllApplications(creds.endpoint, jwt);
+
+  const serverIp = creds.serverIp;
+
+  const { services } = newDefinition.http;
+  const serviceEntries = Object.entries(services);
+
+  serviceEntries.map((entry) => {
+    if (entry[0] === 'coolify-3000') {
+      return;
+    }
+
+    const matched = entry[0].split('-');
+
+    if (matched.length === 2) {
+      const dns = matched[0];
+      const port = matched[1];
+      const application = applications.find(
+        (app: Application) => app.id === dns,
+      );
+      const appPort = application?.exposePort
+        ? application.exposePort.toString()
+        : port;
+
+      entry[1].loadbalancer.servers = entry[1].loadbalancer.servers.map(
+        (server) => ({
+          ...server,
+          url: server.url.replace(dns, serverIp).replace(port, appPort),
+        }),
+      );
+    }
+  });
+};
 
 const compose =
   (funcs: MapperFunction[]): MapperFunction =>
   (initialArg: TraefikDefinition) =>
     funcs.reduce((acc, func) => func(acc), initialArg);
 
-export const mapper = (
+export const mapper = async (
   inputDefinition: TraefikDefinition,
   {
     newHttpEntrypointName,
@@ -158,8 +245,13 @@ export const mapper = (
     removeCoolify,
     removeWwwMiddlewares,
     ignoreMiddlewareSites,
+    mapToServerIP,
+    adminEmail,
+    adminPassword,
+    serverIp,
   }: MapperProps,
-): TraefikDefinition => {
+  baseEndpoint: string,
+): Promise<TraefikDefinition> => {
   let newDefinition = inputDefinition;
 
   const actions: MapperFunction[] = [];
@@ -194,5 +286,15 @@ export const mapper = (
   if (addMiddleware) {
     actions.push(addCustomMiddleware(addMiddleware, ignoreMiddlewareSites));
   }
+
+  if (mapToServerIP && adminEmail && adminPassword && serverIp) {
+    await mapServicesToExternalDomain(newDefinition, {
+      endpoint: baseEndpoint,
+      email: adminEmail,
+      password: adminPassword,
+      serverIp: serverIp,
+    });
+  }
+
   return compose(actions)(newDefinition);
 };

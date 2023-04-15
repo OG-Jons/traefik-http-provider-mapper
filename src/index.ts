@@ -32,6 +32,10 @@ const props: MapperProps = {
   removeWwwMiddlewares: getBooleanFromEnv('FILTER_WWW_MIDDLEWARE'),
   removeHttpRouters: getBooleanFromEnv('FILTER_HTTP_ROUTERS'),
   removeWwwRouters: getBooleanFromEnv('FILTER_WWW_ROUTERS'),
+  mapToServerIP: getStringFromEnv('MAP_TO_SERVER_IP'),
+  serverIp: getStringFromEnv('SERVER_IP'),
+  adminEmail: getStringFromEnv('ADMIN_EMAIL'),
+  adminPassword: getStringFromEnv('ADMIN_PASSWORD'),
 };
 
 const baseEndopint = getStringFromEnv('BASE_ENDPOINT');
@@ -41,9 +45,11 @@ if (!baseEndopint) {
 }
 
 server.get('/', async (request, reply) => {
-  const { data } = await axios.get<TraefikDefinition>(baseEndopint);
+  const { data } = await axios.get<TraefikDefinition>(
+    `${baseEndopint}/webhooks/traefik/main.json`,
+  );
 
-  return mapper(data, props);
+  return mapper(data, props, baseEndopint);
 });
 
 server.listen(8080, '0.0.0.0', (err, address) => {
