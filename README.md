@@ -29,7 +29,7 @@ services:
     restart: unless-stopped
     environment:
       # Required, the address of the coolify server
-      - TRAEFIK_MAPPER_BASE_ENDPOINT=http://coolify:3000/webhooks/traefik/main.json
+      - TRAEFIK_MAPPER_BASE_ENDPOINT=http://coolify:3000
 
       # All the following are optional
 
