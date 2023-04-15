@@ -196,7 +196,6 @@ describe('mapper', () => {
     expect(result.http.routers.test2.middlewares).toEqual(['existing', 'auth']);
   });
 
-
   it('show allow to add a middleware to all routers exept the ignore list', () => {
     const mock = generateRouters({
       test1: {
@@ -221,8 +220,7 @@ describe('mapper', () => {
 
     const result = mapper(mock, {
       addMiddleware: 'auth',
-      ignoreMiddlewareSites: ['toignore.example.io']
-
+      ignoreMiddlewareSites: ['toignore.example.io'],
     });
 
     expect(result.http.routers.test1.middlewares).toEqual(['auth']);
@@ -281,11 +279,16 @@ describe('mapper', () => {
     const mock: TraefikDefinition = {
       http: {
         routers: {
-          'app': {
+          app: {
             entrypoints: ['web'],
             rule: 'Host(`dash-bis.example.io`) || Host(`www.dash-bis.example.io`)',
             service: 'cl40a7hrx5046cwnkfy4c867q',
-            middlewares: ['redirect-to-http', 'redirect-to-https', 'redirect-to-non-www', 'redirect-to-www'],
+            middlewares: [
+              'redirect-to-http',
+              'redirect-to-https',
+              'redirect-to-non-www',
+              'redirect-to-www',
+            ],
           },
         },
         services: {},
