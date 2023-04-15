@@ -250,7 +250,7 @@ export const mapper = async (
     adminPassword,
     serverIp,
   }: MapperProps,
-  baseEndpoint: string,
+  baseEndpoint?: string,
 ): Promise<TraefikDefinition> => {
   let newDefinition = inputDefinition;
 
@@ -287,7 +287,7 @@ export const mapper = async (
     actions.push(addCustomMiddleware(addMiddleware, ignoreMiddlewareSites));
   }
 
-  if (mapToServerIP && adminEmail && adminPassword && serverIp) {
+  if (mapToServerIP && adminEmail && adminPassword && serverIp && baseEndpoint) {
     await mapServicesToExternalDomain(newDefinition, {
       endpoint: baseEndpoint,
       email: adminEmail,

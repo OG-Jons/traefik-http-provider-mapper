@@ -20,7 +20,7 @@ const generateRouters = (
 };
 
 describe('mapper', () => {
-  it('should map http entrypoint, while leaving others', () => {
+  it('should map http entrypoint, while leaving others', async () => {
     const mock = generateRouters({
       test1: {
         entrypoints: ['web', 'websecure'],
@@ -36,7 +36,7 @@ describe('mapper', () => {
       },
     });
 
-    const result = mapper(mock, { newHttpEntrypointName: 'myHttp' });
+    const result = await mapper(mock, { newHttpEntrypointName: 'myHttp' });
 
     expect(result.http.routers.test1.entrypoints).toEqual([
       'myHttp',
@@ -45,7 +45,7 @@ describe('mapper', () => {
     expect(result.http.routers.test2.entrypoints).toEqual(['websecure']);
   });
 
-  it('should map https entrypoint, while leaving others', () => {
+  it('should map https entrypoint, while leaving others', async () => {
     const mock = generateRouters({
       test1: {
         entrypoints: ['web', 'websecure'],
@@ -61,13 +61,13 @@ describe('mapper', () => {
       },
     });
 
-    const result = mapper(mock, { newHttpsEntrypointName: 'myHttps' });
+    const result = await mapper(mock, { newHttpsEntrypointName: 'myHttps' });
 
     expect(result.http.routers.test1.entrypoints).toEqual(['web', 'myHttps']);
     expect(result.http.routers.test2.entrypoints).toEqual(['myHttps']);
   });
 
-  it('should map the certresolver entrypoint, while leaving others', () => {
+  it('should map the certresolver entrypoint, while leaving others', async () => {
     const mock = generateRouters({
       test1: {
         entrypoints: ['web', 'websecure'],
@@ -95,7 +95,7 @@ describe('mapper', () => {
       },
     });
 
-    const result = mapper(mock, { newCertResolver: 'myLetsEncrypt' });
+    const result = await mapper(mock, { newCertResolver: 'myLetsEncrypt' });
 
     expect(result.http.routers.test1.tls?.certresolver).toEqual(
       'myLetsEncrypt',
@@ -103,7 +103,7 @@ describe('mapper', () => {
     expect(result.http.routers.test2.tls).toEqual(mock.http.routers.test2.tls);
   });
 
-  it('should filter out http routers if asked to', () => {
+  it('should filter out http routers if asked to', async () => {
     const mock = generateRouters({
       test1: {
         entrypoints: ['web'],
@@ -119,12 +119,12 @@ describe('mapper', () => {
       },
     });
 
-    const result = mapper(mock, { removeHttpRouters: true });
+    const result = await mapper(mock, {removeHttpRouters: true});
 
     expect(Object.values(result.http.routers)).toHaveLength(1);
   });
 
-  it('should filter out http routers if asked to even if there is name mapping', () => {
+  it('should filter out http routers if asked to even if there is name mapping', async () => {
     const mock = generateRouters({
       test1: {
         entrypoints: ['web'],
@@ -140,7 +140,7 @@ describe('mapper', () => {
       },
     });
 
-    const result = mapper(mock, {
+    const result = await mapper(mock, {
       removeHttpRouters: true,
       newHttpEntrypointName: 'myHttp',
     });
@@ -148,7 +148,7 @@ describe('mapper', () => {
     expect(Object.values(result.http.routers)).toHaveLength(1);
   });
 
-  it('should filter out www routers if asked to', () => {
+  it('should filter out www routers if asked to', async () => {
     const mock = generateRouters({
       test1: {
         entrypoints: ['web'],
@@ -164,7 +164,7 @@ describe('mapper', () => {
       },
     });
 
-    const result = mapper(mock, {
+    const result = await mapper(mock, {
       removeWwwRouters: true,
     });
 
@@ -172,7 +172,7 @@ describe('mapper', () => {
     expect(Object.values(result.http.routers.test2)).toBeDefined();
   });
 
-  it('show allow to add a middleware to all routers', () => {
+  it('show allow to add a middleware to all routers', async () => {
     const mock = generateRouters({
       test1: {
         entrypoints: ['web'],
@@ -188,7 +188,7 @@ describe('mapper', () => {
       },
     });
 
-    const result = mapper(mock, {
+    const result = await mapper(mock, {
       addMiddleware: 'auth',
     });
 
@@ -196,7 +196,7 @@ describe('mapper', () => {
     expect(result.http.routers.test2.middlewares).toEqual(['existing', 'auth']);
   });
 
-  it('show allow to add a middleware to all routers exept the ignore list', () => {
+  it('show allow to add a middleware to all routers exept the ignore list', async () => {
     const mock = generateRouters({
       test1: {
         entrypoints: ['web'],
@@ -218,7 +218,7 @@ describe('mapper', () => {
       },
     });
 
-    const result = mapper(mock, {
+    const result = await mapper(mock, {
       addMiddleware: 'auth',
       ignoreMiddlewareSites: ['toignore.example.io'],
     });
@@ -228,7 +228,7 @@ describe('mapper', () => {
     expect(result.http.routers.test3.middlewares).toEqual(['existing']);
   });
 
-  it('should filter out the coolify router if asked to', () => {
+  it('should filter out the coolify router if asked to', async () => {
     const mock = generateRouters({
       'test2': {
         entrypoints: ['websecure'],
@@ -267,7 +267,7 @@ describe('mapper', () => {
       },
     });
 
-    const result = mapper(mock, {
+    const result = await mapper(mock, {
       removeCoolify: true,
     });
 
@@ -275,7 +275,7 @@ describe('mapper', () => {
     expect(Object.values(result.http.routers.test2)).toBeDefined();
   });
 
-  it('should filter out the www middlewares if asked to', () => {
+  it('should filter out the www middlewares if asked to', async () => {
     const mock: TraefikDefinition = {
       http: {
         routers: {
@@ -301,7 +301,7 @@ describe('mapper', () => {
       },
     };
 
-    const result = mapper(mock, {
+    const result = await mapper(mock, {
       removeWwwMiddlewares: true,
     });
 
@@ -315,7 +315,7 @@ describe('mapper', () => {
     `);
   });
 
-  it('should work if all options are combined', () => {
+  it('should work if all options are combined', async () => {
     const example: TraefikDefinition = {
       http: {
         routers: {
@@ -418,7 +418,7 @@ describe('mapper', () => {
         },
       },
     };
-    const result = mapper(example, {
+    const result = await mapper(example, {
       newHttpEntrypointName: 'http',
       newHttpsEntrypointName: 'https',
       removeHttpRouters: true,
