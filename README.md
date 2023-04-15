@@ -55,6 +55,16 @@ services:
       # Remove all www routes from the list of routes
       - TRAEFIK_MAPPER_FILTER_WWW_ROUTERS=true
 
+      # Map the server ip to the server name, this is useful if you are using a reverse proxy, that isn't running inside the same docker network as coolify (default is false)
+      # This requires the following environment variables to be set, for it to be able to work and the networks coolify and coolify-infra can be left out
+      - TRAEFIK_MAPPER_MAP_TO_SERVER_IP=true
+      # Server IP of coolify in the internal network
+      - TRAEFIK_MAPPER_SERVER_IP=192.168.1.111
+      # Email of an administrator account on coolify
+      - TRAEFIK_MAPPER_ADMIN_EMAIL=email@email.tld
+      # Password of an administrator account on coolify
+      - TRAEFIK_MAPPER_ADMIN_PASSWORD=password
+
     networks:
       # Hooks itself into the coolify network that your Traefik instance should be running on
       - coolify
